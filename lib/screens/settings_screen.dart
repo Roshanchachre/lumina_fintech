@@ -4,26 +4,37 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../bloc/account_bloc.dart';
+import '../core/security/secure_vault.dart';
 import '../core/sound/sound_service.dart';
 import '../theme/lumina_theme.dart';
 import '../widgets/privacy_veil.dart';
+import 'auth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final SecureVault? secureVault;
+
+  const SettingsScreen({super.key, this.secureVault});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  late final SecureVault _secureVault;
   bool _soundEnabled = SoundService.instance.isEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _secureVault = widget.secureVault ?? SecureVault();
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AccountBloc, AccountState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: LuminaColors.background,
+          backgroundColor: Colors.transparent,
           body: SafeArea(
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -258,13 +269,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         const SizedBox(height: 24),
 
-                        // Lock App / Sign out button
+                        // Lock App button
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: LuminaColors.crimsonAlert,
-                              side: BorderSide(color: LuminaColors.crimsonAlert.withValues(alpha: 0.5)),
+                              foregroundColor: LuminaColors.acidLime,
+                              side: BorderSide(color: LuminaColors.acidLime.withValues(alpha: 0.5)),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
@@ -292,6 +303,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                         ),
+
+                        const SizedBox(height: 12),
+
+                        // Prominent Logout / Disconnect Vault button
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: LuminaColors.crimsonAlert,
+                              side: BorderSide(color: LuminaColors.crimsonAlert.withValues(alpha: 0.5)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            icon: const Icon(Icons.logout_rounded, size: 18),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'SIGN OUT & DISCONNECT VAULT',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            onPressed: () => _confirmSignOut(context),
+                          ),
+                        ),
                       ],
                     ),
                   ).animate().fadeIn(delay: 250.ms),
@@ -301,6 +340,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: LuminaColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: LuminaColors.surfaceBorder),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.logout_rounded, color: LuminaColors.crimsonAlert, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'DISCONNECT VAULT?',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  color: LuminaColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This will invalidate your cryptographic session token, clear cached credentials from the secure enclave, and lock the application on this device. You will need your PIN or biometrics to log back in.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            height: 1.4,
+            color: LuminaColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(
+              'CANCEL',
+              style: GoogleFonts.spaceGrotesk(
+                color: LuminaColors.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: LuminaColors.crimsonAlert,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              HapticFeedback.heavyImpact();
+              SoundService.instance.play(LuminaSound.vaultLock);
+              await _secureVault.logout();
+
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                PageRouteBuilder(
+                  transitionDuration: const Duration(milliseconds: 500),
+                  pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+                ),
+                (route) => false,
+              );
+            },
+            child: Text(
+              'SIGN OUT',
+              style: GoogleFonts.spaceGrotesk(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -10,6 +10,8 @@ import 'package:lumina_fintech/screens/settings_screen.dart';
 import 'package:lumina_fintech/modals/deposit_modal.dart';
 import 'package:lumina_fintech/modals/invest_modal.dart';
 import 'package:lumina_fintech/modals/more_modal.dart';
+import 'package:lumina_fintech/screens/onboarding_screen.dart';
+import 'package:lumina_fintech/screens/auth_screen.dart';
 import 'package:lumina_fintech/theme/lumina_theme.dart';
 
 void main() {
@@ -101,5 +103,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('INSTITUTIONAL SERVICES'), findsOneWidget);
+  });
+
+  testWidgets('Zero overflow in Onboarding and Auth screens on narrow screen (320px)', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    // 1. Onboarding Screen
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: LuminaTheme.darkTheme,
+        home: const OnboardingScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('LUMINA'), findsOneWidget);
+
+    // 2. Auth Screen
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: LuminaTheme.darkTheme,
+        home: const AuthScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('LUMINA VAULT'), findsOneWidget);
   });
 }

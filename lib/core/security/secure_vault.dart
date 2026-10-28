@@ -79,6 +79,8 @@ class SecureVault {
   static const String keyDiscreteMode = 'lumina_vault_discrete_mode';
   static const String keyBaseCurrency = 'lumina_vault_base_currency';
   static const String keyCardPinPrefix = 'lumina_vault_card_pin_salt';
+  static const String keyOnboardingCompleted = 'lumina_vault_onboarding_completed';
+  static const String keyUserPin = 'lumina_vault_user_pin';
 
   final IVaultStorage _storage;
 
@@ -133,6 +135,42 @@ class SecureVault {
   Future<String> getBaseCurrency() async {
     final value = await _storage.read(key: keyBaseCurrency);
     return value ?? 'USD';
+  }
+
+  /// Onboarding State
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await _storage.write(
+      key: keyOnboardingCompleted,
+      value: completed ? 'true' : 'false',
+    );
+  }
+
+  Future<bool> isOnboardingCompleted() async {
+    final value = await _storage.read(key: keyOnboardingCompleted);
+    return value == 'true';
+  }
+
+  /// User Security PIN (4-digit cryptographic vault pass)
+  Future<void> saveUserPin(String pin) async {
+    await _storage.write(key: keyUserPin, value: pin);
+  }
+
+  Future<bool> hasUserPin() async {
+    final pin = await _storage.read(key: keyUserPin);
+    return pin != null && pin.isNotEmpty;
+  }
+
+  Future<bool> verifyUserPin(String enteredPin) async {
+    final storedPin = await _storage.read(key: keyUserPin);
+    // Default fallback demo PIN '1234' if none configured yet
+    final targetPin = storedPin ?? '1234';
+    return enteredPin == targetPin;
+  }
+
+  /// User Sign Out / Vault Disconnect
+  Future<void> logout() async {
+    await clearAuthTokens();
+    // Invalidate session while preserving onboarding and hardware configuration
   }
 
   /// Clear entire vault on logout / factory reset

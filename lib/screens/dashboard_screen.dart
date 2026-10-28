@@ -246,51 +246,12 @@ class DashboardScreen extends StatelessWidget {
     return BlocBuilder<AccountBloc, AccountState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: LuminaColors.background,
-          body: Stack(
-            children: [
-              // Ambient Gradient Glow in background
-              Positioned(
-                top: -120,
-                left: -80,
-                child: Container(
-                  width: 320,
-                  height: 320,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        LuminaColors.neonGreen.withValues(alpha: 0.09),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 200,
-                right: -100,
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        LuminaColors.electricCobalt.withValues(alpha: 0.12),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Main Scrollable Content
-              SafeArea(
-                bottom: false,
-                child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
                     // Top App Bar
                     SliverToBoxAdapter(
                       child: Padding(
@@ -417,11 +378,9 @@ class DashboardScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
-      },
-    );
   }
 
   Widget _buildTopBar(BuildContext context, AccountState state) {

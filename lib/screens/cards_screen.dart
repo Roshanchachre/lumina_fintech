@@ -38,7 +38,7 @@ class _CardsScreenState extends State<CardsScreen> {
         final currentCard = cards[_selectedCardIndex];
 
         return Scaffold(
-          backgroundColor: LuminaColors.background,
+          backgroundColor: Colors.transparent,
           body: SafeArea(
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),

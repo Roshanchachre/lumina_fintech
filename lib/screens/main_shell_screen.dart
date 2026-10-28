@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/lumina_theme.dart';
+import '../widgets/atmospheric_background.dart';
 import 'dashboard_screen.dart';
 import 'cards_screen.dart';
 import 'portfolio_screen.dart';
@@ -39,22 +40,26 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
     return Scaffold(
       backgroundColor: LuminaColors.background,
-      body: Stack(
-        children: [
-          // IndexedStack preserves scroll position & 3D state of each tab
-          IndexedStack(
-            index: _activeNavIndex,
-            children: _screens,
-          ),
+      body: LuminaAtmosphericBackground(
+        animate: false,
+        showGrid: true,
+        child: Stack(
+          children: [
+            // IndexedStack preserves scroll position & 3D state of each tab
+            IndexedStack(
+              index: _activeNavIndex,
+              children: _screens,
+            ),
 
-          // Floating Glass Capsule Dock (Bottom Nav)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: bottomInset > 0 ? bottomInset + 6 : 18,
-            child: _buildFloatingDock().animate().fadeIn(delay: 400.ms).slideY(begin: 0.5, end: 0),
-          ),
-        ],
+            // Floating Glass Capsule Dock (Bottom Nav)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: bottomInset > 0 ? bottomInset + 6 : 18,
+              child: _buildFloatingDock().animate().fadeIn(delay: 400.ms).slideY(begin: 0.5, end: 0),
+            ),
+          ],
+        ),
       ),
     );
   }

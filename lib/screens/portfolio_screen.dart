@@ -19,7 +19,7 @@ class PortfolioScreen extends StatelessWidget {
         final allocations = state.allocations;
 
         return Scaffold(
-          backgroundColor: LuminaColors.background,
+          backgroundColor: Colors.transparent,
           body: SafeArea(
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),

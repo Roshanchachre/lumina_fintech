@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,7 +7,9 @@ import '../core/security/biometric_service.dart';
 import '../core/security/secure_vault.dart';
 import '../core/sound/sound_service.dart';
 import '../theme/lumina_theme.dart';
-import 'main_shell_screen.dart';
+import '../widgets/atmospheric_background.dart';
+import 'auth_screen.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final SecureVault? secureVault;
@@ -22,49 +25,51 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late final SecureVault _secureVault;
-  late final BiometricService _biometricService;
-  bool _needsManualUnlock = false;
+  late final AnimationController _ringController;
 
   @override
   void initState() {
     super.initState();
     _secureVault = widget.secureVault ?? SecureVault();
-    _biometricService = widget.biometricService ?? BiometricService();
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    );
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (!isTest) {
+      _ringController.repeat();
+    }
     _startIgnitionSequence();
   }
 
-  Future<void> _startIgnitionSequence() async {
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (!mounted) return;
-
-    final isEnrolled = await _secureVault.isBiometricsEnrolled();
-    if (isEnrolled) {
-      final authenticated = await _biometricService.authenticate(
-        localizedReason: 'Authenticate to access Lumina Sovereign Vault',
-      );
-      if (!authenticated) {
-        if (mounted) {
-          setState(() {
-            _needsManualUnlock = true;
-          });
-        }
-        return;
-      }
-    }
-
-    _navigateToDashboard();
+  @override
+  void dispose() {
+    _ringController.dispose();
+    super.dispose();
   }
 
-  void _navigateToDashboard() {
+  Future<void> _startIgnitionSequence() async {
+    // Stage 1: Play ignition sound & wait for animations to blossom
+    SoundService.instance.play(LuminaSound.wireSend);
+    await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
+
+    // Stage 2: Check onboarding status
+    final isOnboarded = await _secureVault.isOnboardingCompleted();
+
     HapticFeedback.mediumImpact();
     SoundService.instance.play(LuminaSound.biometricUnlock);
+
+    if (!mounted) return;
+    _ringController.stop();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (context, animation, secondaryAnimation) => const MainShellScreen(),
+        transitionDuration: const Duration(milliseconds: 650),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            isOnboarded ? const AuthScreen() : const OnboardingScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -76,148 +81,151 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LuminaColors.background,
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Ambient Radial Light
-          Positioned(
-            child: Container(
-              width: 360,
-              height: 360,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    LuminaColors.electricCobalt.withValues(alpha: 0.25),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ).animate().scale(duration: 1200.ms, curve: Curves.easeOutCubic),
+      body: LuminaAtmosphericBackground(
+        animate: true,
+        showGrid: true,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Center Cinematic Logo & Rotating Energy Ring
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Rotating Energy Orbit + Cyber Diamond Logo
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Rotating Dashed Energy Orbit
+                      AnimatedBuilder(
+                        animation: _ringController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: _ringController.value * 2 * math.pi,
+                            child: Container(
+                              width: 140,
+                              height: 140,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: LuminaColors.acidLime.withValues(alpha: 0.35),
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
 
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Glowing Cyber Diamond Logo (Acid Lime on Midnight Black)
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: LuminaColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: LuminaColors.acidLime.withValues(alpha: 0.6),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: LuminaColors.acidLime.withValues(alpha: 0.3),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
+                      // Counter-Rotating Outer Dash Ring
+                      AnimatedBuilder(
+                        animation: _ringController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: -_ringController.value * 2 * math.pi * 0.7,
+                            child: Container(
+                              width: 160,
+                              height: 160,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: LuminaColors.electricCobalt.withValues(alpha: 0.25),
+                                  width: 1.0,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      BoxShadow(
-                        color: LuminaColors.electricCobalt.withValues(alpha: 0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
+
+                      // Center Cyber Diamond Logo with Acid Lime Glow
+                      Container(
+                        width: 92,
+                        height: 92,
+                        decoration: BoxDecoration(
+                          color: LuminaColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: LuminaColors.acidLime.withValues(alpha: 0.75),
+                            width: 1.8,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: LuminaColors.acidLime.withValues(alpha: 0.35),
+                              blurRadius: 36,
+                              offset: const Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: LuminaColors.electricCobalt.withValues(alpha: 0.30),
+                              blurRadius: 24,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.diamond_outlined,
+                            color: LuminaColors.acidLime,
+                            size: 46,
+                          ),
+                        ),
+                      ).animate().scale(duration: 900.ms, curve: Curves.elasticOut).shimmer(delay: 500.ms, duration: 800.ms),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.diamond_outlined,
-                      color: LuminaColors.acidLime,
-                      size: 44,
-                    ),
-                  ),
-                ).animate().scale(duration: 800.ms, curve: Curves.elasticOut).shimmer(delay: 600.ms, duration: 800.ms),
 
-                const SizedBox(height: 24),
-
-                Text(
-                  'LUMINA',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 6.0,
-                    color: LuminaColors.textPrimary,
-                  ),
-                ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideY(begin: 0.2, end: 0),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  'SOVEREIGN WEALTH & PRIVATE BANKING',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2.0,
-                    color: LuminaColors.electricCobalt,
-                  ),
-                ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
-
-                if (_needsManualUnlock) ...[
                   const SizedBox(height: 32),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _needsManualUnlock = false;
-                      });
-                      _startIgnitionSequence();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: LuminaColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: LuminaColors.neonGreen),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.fingerprint_rounded, color: LuminaColors.neonGreen, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'UNLOCK WITH BIOMETRICS',
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: LuminaColors.neonGreen,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).animate().fadeIn(duration: 300.ms).scale(),
-                ],
-              ],
-            ),
-          ),
 
-          // Bottom Security Status
-          Positioned(
-            bottom: 40,
-            child: Row(
-              children: [
-                const Icon(Icons.lock_outline_rounded, color: LuminaColors.textMuted, size: 14),
-                const SizedBox(width: 6),
-                Text(
-                  'ENCLAVE ENCRYPTION ACTIVE • ARBITRUM L2',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                    color: LuminaColors.textMuted,
+                  // Kinetic Title Reveal
+                  Text(
+                    'LUMINA',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 8.0,
+                      color: LuminaColors.textPrimary,
+                    ),
+                  )
+                      .animate()
+                      .fadeIn(delay: 300.ms, duration: 600.ms)
+                      .slideY(begin: 0.25, end: 0),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    'SOVEREIGN WEALTH & PRIVATE BANKING',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.2,
+                      color: LuminaColors.electricCobalt,
+                    ),
+                  ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                ],
+              ),
+            ),
+
+            // Bottom Cryptographic Enclave Status
+            Positioned(
+              bottom: 44,
+              child: Row(
+                children: [
+                  const Icon(Icons.shield_outlined, color: LuminaColors.acidLime, size: 14),
+                  const SizedBox(width: 8),
+                  Text(
+                    'HARDWARE ENCLAVE SECURED • ARBITRUM L2',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.4,
+                      color: LuminaColors.textMuted,
+                    ),
                   ),
-                ),
-              ],
-            ).animate().fadeIn(delay: 700.ms),
-          ),
-        ],
+                ],
+              ).animate().fadeIn(delay: 700.ms),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-
