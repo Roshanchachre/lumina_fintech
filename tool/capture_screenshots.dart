@@ -13,6 +13,72 @@ import 'package:lumina_fintech/screens/activities_screen.dart';
 import 'package:lumina_fintech/screens/issue_card_screen.dart';
 import 'package:lumina_fintech/theme/lumina_theme.dart';
 
+Future<void> loadAllFonts() async {
+  // 1. Material Icons
+  final iconFile = File('assets/google_fonts/MaterialIcons-Regular.otf');
+  if (iconFile.existsSync()) {
+    final loader = FontLoader('MaterialIcons');
+    loader.addFont(Future.value(ByteData.view(iconFile.readAsBytesSync().buffer)));
+    await loader.load();
+  }
+
+  // 2. Cupertino Icons
+  final cupertinoFile = File('assets/google_fonts/CupertinoIcons.ttf');
+  if (cupertinoFile.existsSync()) {
+    final loader = FontLoader('packages/cupertino_icons/CupertinoIcons');
+    loader.addFont(Future.value(ByteData.view(cupertinoFile.readAsBytesSync().buffer)));
+    await loader.load();
+  }
+
+  // 3. Google Fonts (Plus Jakarta Sans & Space Grotesk)
+  final pjsBytes = File('assets/google_fonts/PlusJakartaSans[wght].ttf').readAsBytesSync();
+  final sgBytes = File('assets/google_fonts/SpaceGrotesk[wght].ttf').readAsBytesSync();
+
+  final pjsVariants = [
+    'PlusJakartaSans',
+    'PlusJakartaSans_regular',
+    'PlusJakartaSans_300',
+    'PlusJakartaSans_400',
+    'PlusJakartaSans_500',
+    'PlusJakartaSans_600',
+    'PlusJakartaSans_700',
+    'PlusJakartaSans_800',
+    'PlusJakartaSans_300normal',
+    'PlusJakartaSans_400normal',
+    'PlusJakartaSans_500normal',
+    'PlusJakartaSans_600normal',
+    'PlusJakartaSans_700normal',
+    'PlusJakartaSans_800normal',
+  ];
+
+  final sgVariants = [
+    'SpaceGrotesk',
+    'SpaceGrotesk_regular',
+    'SpaceGrotesk_300',
+    'SpaceGrotesk_400',
+    'SpaceGrotesk_500',
+    'SpaceGrotesk_600',
+    'SpaceGrotesk_700',
+    'SpaceGrotesk_300normal',
+    'SpaceGrotesk_400normal',
+    'SpaceGrotesk_500normal',
+    'SpaceGrotesk_600normal',
+    'SpaceGrotesk_700normal',
+  ];
+
+  for (final name in pjsVariants) {
+    final loader = FontLoader(name);
+    loader.addFont(Future.value(ByteData.view(pjsBytes.buffer)));
+    await loader.load();
+  }
+
+  for (final name in sgVariants) {
+    final loader = FontLoader(name);
+    loader.addFont(Future.value(ByteData.view(sgBytes.buffer)));
+    await loader.load();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
@@ -30,7 +96,9 @@ void main() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(sensorChannel, (call) async => null);
 
-  testWidgets('Generate Mobile and Tablet Screenshots', (tester) async {
+  testWidgets('Generate Mobile and Tablet Screenshots with Real Fonts', (tester) async {
+    await loadAllFonts();
+
     final screenshotsDir = Directory('docs/screenshots');
     if (!screenshotsDir.existsSync()) {
       screenshotsDir.createSync(recursive: true);
@@ -119,7 +187,7 @@ void main() {
       });
     }
 
-    // 1. Mobile Shell Tabs
+    // 1. Mobile Shell Tabs (393 x 852 logical)
     await captureTab(filename: 'mobile_dashboard.png', size: const Size(393, 852), tabIndex: 0);
     await captureTab(filename: 'mobile_cards.png', size: const Size(393, 852), tabIndex: 1);
     await captureTab(filename: 'mobile_portfolio.png', size: const Size(393, 852), tabIndex: 2);
@@ -130,7 +198,7 @@ void main() {
     await captureWidget(filename: 'mobile_notifications.png', size: const Size(393, 852), widget: const NotificationsScreen());
     await captureWidget(filename: 'mobile_card_issuance.png', size: const Size(393, 852), widget: const IssueCardScreen());
 
-    // 3. Tablet Shell Tabs (iPad mini / 768 x 1024)
+    // 3. Tablet Shell Tabs (768 x 1024 logical)
     await captureTab(filename: 'tablet_dashboard.png', size: const Size(768, 1024), tabIndex: 0);
     await captureTab(filename: 'tablet_cards.png', size: const Size(768, 1024), tabIndex: 1);
     await captureTab(filename: 'tablet_portfolio.png', size: const Size(768, 1024), tabIndex: 2);
