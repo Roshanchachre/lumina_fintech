@@ -16,6 +16,11 @@ import '../widgets/transaction_item.dart';
 import '../modals/deposit_modal.dart';
 import '../modals/invest_modal.dart';
 import '../modals/more_modal.dart';
+import '../widgets/lumina_snackbar.dart';
+import '../core/services/notification_service.dart';
+import 'activities_screen.dart';
+import 'notifications_screen.dart';
+import 'profile_setup_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -70,174 +75,26 @@ class DashboardScreen extends StatelessWidget {
   }
 
   void _showNotifications(BuildContext context) {
+    SoundService.instance.play(LuminaSound.cardClick);
     HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: LuminaColors.surfaceElevated,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'VAULT NOTIFICATIONS',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: LuminaColors.electricCobalt,
-                            letterSpacing: 1.5,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        'MARK AS READ',
-                        style: GoogleFonts.spaceGrotesk(fontSize: 11, color: LuminaColors.acidLime, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _notificationTile(
-                    icon: Icons.flash_on_rounded,
-                    color: LuminaColors.acidLime,
-                    title: 'Arbitrum L2 Yield Compounded',
-                    time: '12m ago',
-                    description: '+\$348.60 credited to wstETH Staking Vault.',
-                  ),
-                  _notificationTile(
-                    icon: Icons.shield_rounded,
-                    color: LuminaColors.electricCobalt,
-                    title: 'Biometric Shield Active',
-                    time: '1h ago',
-                    description: 'Enclave verification passed from Apple M4 Pro.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static Widget _notificationTile({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String time,
-    required String description,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: LuminaColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LuminaColors.surfaceBorderSubtle),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(title, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: LuminaColors.textPrimary)),
-                    Text(time, style: GoogleFonts.spaceGrotesk(fontSize: 11, color: LuminaColors.textMuted)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(description, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: LuminaColors.textSecondary)),
-              ],
-            ),
-          ),
-        ],
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const NotificationsScreen(),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     );
   }
 
   void _showAllTransactions(BuildContext context, List<TransactionRecord> transactions) {
+    SoundService.instance.play(LuminaSound.cardClick);
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: LuminaColors.surfaceElevated,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          minChildSize: 0.5,
-          expand: false,
-          builder: (context, scrollController) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'COMPLETE ACTIVITY STREAM',
-                    style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w700, color: LuminaColors.acidLime, letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Immutable Ledger on Arbitrum One L2',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 14, color: LuminaColors.textMuted),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      itemCount: transactions.length,
-                      itemBuilder: (context, index) {
-                        final tx = transactions[index];
-                        return TransactionItemTile(
-                          transaction: Transaction(
-                            title: tx.title,
-                            category: tx.category,
-                            time: tx.time,
-                            amount: tx.amount,
-                            isPositive: tx.isPositive,
-                            icon: tx.icon,
-                            iconColor: tx.iconColor,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => ActivitiesScreen(initialTransactions: transactions),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
     );
   }
 
@@ -391,19 +248,41 @@ class DashboardScreen extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(2.5),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LuminaColors.cobaltAcid,
-                ),
-                child: const CircleAvatar(
-                  radius: 19,
-                  backgroundColor: Color(0xFF0D1424),
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: LuminaColors.textPrimary,
-                    size: 20,
+              GestureDetector(
+                onTap: () {
+                  SoundService.instance.play(LuminaSound.cardClick);
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (_, __, ___) => ProfileSetupScreen(
+                        initialUser: state.user,
+                        isInitialSetup: false,
+                      ),
+                      transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(2.5),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LuminaColors.cobaltAcid,
+                  ),
+                  child: CircleAvatar(
+                    radius: 19,
+                    backgroundColor: const Color(0xFF0D1424),
+                    child: ClipOval(
+                      child: Image.asset(
+                        state.user.avatarUrl.isNotEmpty ? state.user.avatarUrl : 'assets/avatars/boy_1.png',
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.person_rounded,
+                          color: LuminaColors.textPrimary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -436,46 +315,63 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        // Bell Notification with Neon Dot
-        GestureDetector(
-          onTap: () => _showNotifications(context),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: LuminaColors.surfaceElevated,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: LuminaColors.surfaceBorderSubtle),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(
-                  Icons.notifications_none_rounded,
-                  color: LuminaColors.textPrimary,
-                  size: 22,
+        // Bell Notification with Reactive Synchronized Badge
+        ListenableBuilder(
+          listenable: NotificationService.instance,
+          builder: (context, _) {
+            final unreadCount = NotificationService.instance.unreadCount;
+            return GestureDetector(
+              onTap: () => _showNotifications(context),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: LuminaColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: LuminaColors.surfaceBorderSubtle),
                 ),
-                Positioned(
-                  top: 10,
-                  right: 12,
-                  child: Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: LuminaColors.neonGreen,
-                      boxShadow: [
-                        BoxShadow(
-                          color: LuminaColors.neonGreen,
-                          blurRadius: 6,
-                        ),
-                      ],
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(
+                      Icons.notifications_none_rounded,
+                      color: LuminaColors.textPrimary,
+                      size: 22,
                     ),
-                  ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 7,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+                          decoration: BoxDecoration(
+                            color: LuminaColors.acidLime,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: LuminaColors.acidLime.withValues(alpha: 0.6),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount > 9 ? '9+' : '$unreadCount',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: LuminaColors.midnightBlack,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -693,11 +589,11 @@ class _QuickSendModalState extends State<_QuickSendModal> {
                     if (!authed) {
                       SoundService.instance.play(LuminaSound.errorAlert);
                       if (mounted && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Biometric verification failed. Wire transfer cancelled.'),
-                            backgroundColor: LuminaColors.surfaceElevated,
-                          ),
+                        LuminaSnackBar.show(
+                          context,
+                          type: LuminaSnackBarType.error,
+                          title: 'Authentication Rejected',
+                          message: 'Biometric authorization failed. Wire transfer cancelled.',
                         );
                       }
                       return;

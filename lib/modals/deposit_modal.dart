@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../core/sound/sound_service.dart';
 import '../theme/lumina_theme.dart';
+import '../widgets/lumina_snackbar.dart';
 
 class DepositModal extends StatelessWidget {
   const DepositModal({super.key});
@@ -64,14 +64,12 @@ class DepositModal extends StatelessWidget {
                 badge: 'NO LIMIT',
                 accentColor: LuminaColors.acidLime,
                 onTap: () {
-                  HapticFeedback.lightImpact();
-                  SoundService.instance.play(LuminaSound.moneyReceived);
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Virtual Routing: 021000021 • Account: 9821489201'),
-                      backgroundColor: LuminaColors.surfaceElevated,
-                    ),
+                  LuminaSnackBar.show(
+                    context,
+                    type: LuminaSnackBarType.info,
+                    title: 'Wire Routing Instructions',
+                    message: 'Virtual Routing: 021000021 • Account: 9821489201',
                   );
                 },
               ),
@@ -85,14 +83,13 @@ class DepositModal extends StatelessWidget {
                 badge: 'ZERO GAS',
                 accentColor: LuminaColors.electricCobalt,
                 onTap: () {
-                  HapticFeedback.lightImpact();
                   Clipboard.setData(const ClipboardData(text: '0x71C83912048921820489B29A'));
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Arbitrum L2 Address Copied: 0x71C...B29A'),
-                      backgroundColor: LuminaColors.surfaceElevated,
-                    ),
+                  LuminaSnackBar.show(
+                    context,
+                    type: LuminaSnackBarType.success,
+                    title: 'Address Copied',
+                    message: 'Arbitrum L2 Address copied: 0x71C...B29A',
                   );
                 },
               ),
@@ -106,14 +103,12 @@ class DepositModal extends StatelessWidget {
                 badge: 'INSTANT',
                 accentColor: LuminaColors.textPrimary,
                 onTap: () {
-                  HapticFeedback.lightImpact();
-                  SoundService.instance.play(LuminaSound.moneyReceived);
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Apple Pay top-up initiated.'),
-                      backgroundColor: LuminaColors.surfaceElevated,
-                    ),
+                  LuminaSnackBar.show(
+                    context,
+                    type: LuminaSnackBarType.success,
+                    title: 'Top-Up Initiated',
+                    message: 'Apple Pay instant deposit authorized and clearing.',
                   );
                 },
               ),

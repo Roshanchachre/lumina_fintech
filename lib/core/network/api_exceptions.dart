@@ -10,7 +10,12 @@ class ApiException implements Exception {
 }
 
 class NetworkException extends ApiException {
-  const NetworkException({super.message = 'Unable to reach institutional banking server. Check network connection.'});
+  final String? url;
+
+  const NetworkException({
+    super.message = 'Unable to reach institutional banking server. Check network connection.',
+    this.url,
+  });
 }
 
 class UnauthorizedException extends ApiException {
@@ -35,4 +40,15 @@ class DuplicateTransactionException extends ApiException {
 class ServerException extends ApiException {
   const ServerException({super.message = 'Internal ledger server error. Please retry shortly.'})
       : super(statusCode: 500);
+}
+
+class EmailNotVerifiedException extends ApiException {
+  final String email;
+  final String fullName;
+
+  const EmailNotVerifiedException({
+    required this.email,
+    this.fullName = '',
+    super.message = 'Your email has not been verified yet. Please enter the verification code sent to your email.',
+  }) : super(statusCode: 403);
 }

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/network/api_client.dart';
 import '../core/security/biometric_service.dart';
 import '../core/security/secure_vault.dart';
+import '../core/services/notification_service.dart';
+import '../data/chart_dataset.dart';
 import '../data/datasources/account_remote_datasource.dart';
 import '../data/repositories/account_repository_impl.dart';
 import '../data/repositories/transfer_repository_impl.dart';
@@ -38,6 +40,28 @@ class ToggleCardInternational extends AccountEvent {
   ToggleCardInternational(this.cardId);
 }
 
+class IssueNewCard extends AccountEvent {
+  final LuminaCardModel newCard;
+  IssueNewCard(this.newCard);
+}
+
+class UpdateCardDailyLimit extends AccountEvent {
+  final String cardId;
+  final double newLimit;
+  UpdateCardDailyLimit(this.cardId, this.newLimit);
+}
+
+class SetCardPin extends AccountEvent {
+  final String cardId;
+  final String newPin;
+  SetCardPin(this.cardId, this.newPin);
+}
+
+class TerminateCard extends AccountEvent {
+  final String cardId;
+  TerminateCard(this.cardId);
+}
+
 class ExecuteWireTransfer extends AccountEvent {
   final String recipient;
   final double amount;
@@ -57,6 +81,16 @@ class ToggleBiometrics extends AccountEvent {
 class ChangeBaseCurrency extends AccountEvent {
   final String currency;
   ChangeBaseCurrency(this.currency);
+}
+
+class UpdateUserProfile extends AccountEvent {
+  final UserProfile user;
+  UpdateUserProfile(this.user);
+}
+
+class UpdateUserAvatar extends AccountEvent {
+  final String avatarUrl;
+  UpdateUserAvatar(this.avatarUrl);
 }
 
 // STATE
@@ -154,6 +188,12 @@ class AccountState {
           tierName: 'Titanium Executive',
           gradient: LuminaColors.cardGradientTitanium,
           accentColor: LuminaColors.electricCobalt,
+          cardType: CardType.physical,
+          cardNickname: 'Primary Metal Vault',
+          shippingAddress: 'Bahnhofstrasse 45, 8001 Zurich, Switzerland',
+          trackingNumber: 'DHL-EXPRESS-98214-US',
+          fullPan: '4820  8391  0294  8492',
+          shippingStep: 2,
         ),
         const LuminaCardModel(
           id: 'card_cobalt_02',
@@ -169,6 +209,9 @@ class AccountState {
           tierName: 'Electric Cobalt Sovereign',
           gradient: LuminaColors.cardGradientCobalt,
           accentColor: LuminaColors.electricCobalt,
+          cardType: CardType.virtual,
+          cardNickname: 'SaaS & Web Subscriptions',
+          fullPan: '5520  9182  3819  3918',
         ),
         const LuminaCardModel(
           id: 'card_acid_03',
@@ -184,6 +227,9 @@ class AccountState {
           tierName: 'Acid Volt Yield L2',
           gradient: LuminaColors.cardGradientAcid,
           accentColor: LuminaColors.acidLime,
+          cardType: CardType.virtual,
+          cardNickname: 'Arbitrum Yield Disposable',
+          fullPan: '4111  7720  4412  9921',
         ),
       ],
       allocations: const [
@@ -272,12 +318,12 @@ class AccountState {
           referenceId: 'FIG-SUB-77182',
         ),
       ],
-      chartPoints: const {
-        '1D': [40, 48, 45, 58, 52, 65, 62, 74, 70, 85],
-        '1W': [30, 42, 38, 55, 48, 62, 59, 72, 80, 92],
-        '1M': [35, 45, 40, 60, 55, 70, 65, 82, 78, 95],
-        '1Y': [20, 32, 28, 45, 40, 58, 65, 75, 85, 100],
-        'ALL': [15, 25, 35, 30, 50, 65, 60, 80, 90, 100],
+      chartPoints: {
+        '1D': LuminaChartData.valuesForPeriod('1D'),
+        '1W': LuminaChartData.valuesForPeriod('1W'),
+        '1M': LuminaChartData.valuesForPeriod('1M'),
+        '1Y': LuminaChartData.valuesForPeriod('1Y'),
+        'ALL': LuminaChartData.valuesForPeriod('ALL'),
       },
     );
   }
@@ -315,6 +361,78 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     on<ExecuteWireTransfer>(_onExecuteWireTransfer);
     on<ToggleBiometrics>(_onToggleBiometrics);
     on<ChangeBaseCurrency>(_onChangeBaseCurrency);
+    on<UpdateUserProfile>(_onUpdateUserProfile);
+    on<UpdateUserAvatar>(_onUpdateUserAvatar);
+    on<IssueNewCard>(_onIssueNewCard);
+    on<UpdateCardDailyLimit>(_onUpdateCardDailyLimit);
+    on<SetCardPin>(_onSetCardPin);
+    on<TerminateCard>(_onTerminateCard);
+  }
+
+  void _onIssueNewCard(IssueNewCard event, Emitter<AccountState> emit) {
+    final updatedList = [event.newCard, ...state.cards];
+    emit(state.copyWith(cards: updatedList));
+
+    NotificationService.instance.addNotification(
+      VaultNotification(
+        id: 'notif-card-${DateTime.now().millisecondsSinceEpoch}',
+        title: '${event.newCard.cardType == CardType.virtual ? "Virtual" : "Physical"} Card Minted',
+        description: 'New ${event.newCard.tierName} card issued successfully. Enclave cryptographic keys activated.',
+        time: 'Just now',
+        category: NotificationCategory.security,
+        icon: Icons.credit_card_rounded,
+        accentColor: event.newCard.accentColor,
+        metricBadge: event.newCard.cardType == CardType.virtual ? 'APPLE PAY' : 'DHL DISPATCH',
+        isRead: false,
+      ),
+    );
+  }
+
+  void _onUpdateCardDailyLimit(UpdateCardDailyLimit event, Emitter<AccountState> emit) {
+    final updatedList = state.cards.map((card) {
+      if (card.id == event.cardId) {
+        return card.copyWith(dailyLimit: event.newLimit);
+      }
+      return card;
+    }).toList();
+    emit(state.copyWith(cards: updatedList));
+  }
+
+  void _onSetCardPin(SetCardPin event, Emitter<AccountState> emit) {
+    final updatedList = state.cards.map((card) {
+      if (card.id == event.cardId) {
+        return card.copyWith(cardPin: event.newPin);
+      }
+      return card;
+    }).toList();
+    emit(state.copyWith(cards: updatedList));
+  }
+
+  void _onTerminateCard(TerminateCard event, Emitter<AccountState> emit) {
+    final updatedList = state.cards.where((card) => card.id != event.cardId).toList();
+    emit(state.copyWith(cards: updatedList));
+
+    NotificationService.instance.addNotification(
+      VaultNotification(
+        id: 'notif-term-${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Card Deactivated',
+        description: 'Card was permanently terminated and securely purged from your active vault.',
+        time: 'Just now',
+        category: NotificationCategory.security,
+        icon: Icons.cancel_outlined,
+        accentColor: LuminaColors.crimsonAlert,
+        metricBadge: 'TERMINATED',
+        isRead: false,
+      ),
+    );
+  }
+
+  void _onUpdateUserProfile(UpdateUserProfile event, Emitter<AccountState> emit) {
+    emit(state.copyWith(user: event.user));
+  }
+
+  void _onUpdateUserAvatar(UpdateUserAvatar event, Emitter<AccountState> emit) {
+    emit(state.copyWith(user: state.user.copyWith(avatarUrl: event.avatarUrl)));
   }
 
   Future<void> _onLoadAccountData(

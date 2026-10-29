@@ -8,6 +8,8 @@ import '../theme/lumina_theme.dart';
 import '../widgets/atmospheric_background.dart';
 import '../widgets/mascot_widget.dart';
 import 'auth_screen.dart';
+import 'login_screen.dart';
+import 'register_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final SecureVault? secureVault;
@@ -46,16 +48,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
-  Future<void> _completeOnboarding() async {
+  Future<void> _completeOnboarding({bool toRegister = false}) async {
     HapticFeedback.heavyImpact();
     SoundService.instance.play(LuminaSound.biometricUnlock);
     await _secureVault.setOnboardingCompleted(true);
+    final token = await _secureVault.getAuthToken();
 
     if (!mounted) return;
+    Widget target;
+    if (token != null && token.isNotEmpty) {
+      target = const AuthScreen();
+    } else if (toRegister) {
+      target = const RegisterScreen();
+    } else {
+      target = const LoginScreen();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => target,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -70,7 +82,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOutCubic,
       );
     } else {
-      _completeOnboarding();
+      _completeOnboarding(toRegister: true);
     }
   }
 
@@ -207,14 +219,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     // Primary Action Button
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: 54,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: LuminaColors.acidLime,
                           foregroundColor: LuminaColors.midnightBlack,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(18),
                           ),
                         ),
                         onPressed: _onNextPressed,
@@ -245,6 +257,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                     ),
+
+                    // Page 3 Secondary Action: Sign In for existing accounts
+                    if (_currentPage == 2) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: TextButton(
+                          onPressed: () => _completeOnboarding(toRegister: false),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'ALREADY REGISTERED? ',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: LuminaColors.textSecondary,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                Text(
+                                  'SIGN IN',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: LuminaColors.acidLime,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

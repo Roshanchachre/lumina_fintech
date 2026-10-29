@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/lumina_theme.dart';
+import '../widgets/lumina_snackbar.dart';
 
 class MoreModal extends StatelessWidget {
   const MoreModal({super.key});
@@ -99,13 +99,12 @@ class MoreModal extends StatelessWidget {
   }
 
   static void _action(BuildContext context, String message) {
-    HapticFeedback.mediumImpact();
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: LuminaColors.surfaceElevated,
-      ),
+    LuminaSnackBar.show(
+      context,
+      type: LuminaSnackBarType.info,
+      title: 'Institutional Service',
+      message: message,
     );
   }
 

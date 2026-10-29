@@ -4,11 +4,15 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../bloc/account_bloc.dart';
+import '../bloc/auth_bloc.dart';
 import '../core/security/secure_vault.dart';
 import '../core/sound/sound_service.dart';
 import '../theme/lumina_theme.dart';
+import '../widgets/lumina_snackbar.dart';
 import '../widgets/privacy_veil.dart';
-import 'auth_screen.dart';
+import 'login_screen.dart';
+import 'onboarding_screen.dart';
+import 'profile_setup_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SecureVault? secureVault;
@@ -82,27 +86,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: LuminaColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: LuminaColors.surfaceBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LuminaColors.cobaltAcid,
+                    child: InkWell(
+                      onTap: () {
+                        SoundService.instance.play(LuminaSound.cardClick);
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) => ProfileSetupScreen(
+                              initialUser: state.user,
+                              isInitialSetup: false,
                             ),
-                            child: const CircleAvatar(
-                              radius: 26,
-                              backgroundColor: Color(0xFF1E2433),
-                              child: Icon(Icons.person_rounded, color: LuminaColors.textPrimary, size: 28),
-                            ),
+                            transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
                           ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: LuminaColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: LuminaColors.surfaceBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LuminaColors.cobaltAcid,
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 26,
+                                    backgroundColor: const Color(0xFF1E2433),
+                                    child: ClipOval(
+                                      child: Image.asset(
+                                        state.user.avatarUrl.isNotEmpty
+                                            ? state.user.avatarUrl
+                                            : 'assets/avatars/boy_1.png',
+                                        width: 52,
+                                        height: 52,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.person_rounded,
+                                          color: LuminaColors.textPrimary,
+                                          size: 28,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: LuminaColors.acidLime,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: LuminaColors.background, width: 1.5),
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 10,
+                                      color: Color(0xFF030407),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -160,13 +213,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     ),
-                  ).animate().fadeIn(delay: 150.ms),
-                ),
+                  ),
+                ).animate().fadeIn(delay: 150.ms),
+              ),
 
                 // Security & Privacy Vault Section
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 130),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -257,11 +311,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           value: 'Arbitrum One L2 (0x82...1)',
                           accentColor: LuminaColors.electricCobalt,
                           onTap: () {
+                            LuminaSnackBar.show(
+                              context,
+                              type: LuminaSnackBarType.info,
+                              title: 'Arbitrum RPC Active',
+                              message: 'Connected to Arbitrum One RPC • 240 TPS throughput.',
+                            );
+                          },
+                        ),
+
+                        // Lumi Mascot Tour & Onboarding
+                        _buildSelectTile(
+                          icon: Icons.auto_awesome_rounded,
+                          title: 'Lumi Mascot Tour & Guide',
+                          value: 'Replay 3-Screen Onboarding',
+                          accentColor: LuminaColors.acidLime,
+                          onTap: () {
                             HapticFeedback.lightImpact();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Connected to Arbitrum One RPC • 240 TPS'),
-                                backgroundColor: LuminaColors.surfaceElevated,
+                            Navigator.of(context).push(
+                              PageRouteBuilder(
+                                pageBuilder: (_, __, ___) => const OnboardingScreen(),
+                                transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
                               ),
                             );
                           },
@@ -292,13 +362,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             onPressed: () {
-                              HapticFeedback.heavyImpact();
                               LuminaPrivacyGuard.of(context)?.lockVault();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Vault Locked. Biometric re-authentication required.'),
-                                  backgroundColor: LuminaColors.surfaceElevated,
-                                ),
+                              LuminaSnackBar.show(
+                                context,
+                                type: LuminaSnackBarType.warning,
+                                title: 'Vault Locked',
+                                message: 'Biometric scan or PIN required to decrypt session.',
                               );
                             },
                           ),
@@ -399,13 +468,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(dialogCtx);
               HapticFeedback.heavyImpact();
               SoundService.instance.play(LuminaSound.vaultLock);
+              try {
+                context.read<AuthBloc>().add(LogoutRequested());
+              } catch (_) {}
               await _secureVault.logout();
 
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
                 PageRouteBuilder(
                   transitionDuration: const Duration(milliseconds: 500),
-                  pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
                   transitionsBuilder: (context, animation, secondaryAnimation, child) =>
                       FadeTransition(opacity: animation, child: child),
                 ),
@@ -506,18 +578,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   title,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     color: LuminaColors.textPrimary,
+                    height: 1.25,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     color: LuminaColors.textMuted,
+                    height: 1.3,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -568,28 +643,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: LuminaColors.textPrimary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                value,
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: LuminaColors.electricCobalt,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: LuminaColors.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    value,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: accentColor,
+                      letterSpacing: 0.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 8),

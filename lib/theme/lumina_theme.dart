@@ -62,6 +62,16 @@ class LuminaColors {
 
   static const LinearGradient cardGradientEmerald = cardGradientAcid;
 
+  static const LinearGradient cardGradientObsidian = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF231633),
+      Color(0xFF130A1F),
+      Color(0xFF07030C),
+    ],
+  );
+
   static const LinearGradient neonGreenCyan = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,

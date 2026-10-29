@@ -42,7 +42,56 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onError: (DioException error, handler) {
+        onError: (DioException error, handler) async {
+          // Automatic multi-host fallback for physical devices (e.g. iPhone) and emulators
+          if (error.type == DioExceptionType.connectionError ||
+              error.type == DioExceptionType.connectionTimeout) {
+            final requestOptions = error.requestOptions;
+            final attempted = List<String>.from(
+              (requestOptions.extra['attempted_urls'] as List?) ?? [],
+            );
+            attempted.add(dio.options.baseUrl);
+
+            for (final candidate in ApiEndpoints.candidateBaseUrls) {
+              if (!attempted.contains(candidate)) {
+                try {
+                  final retryOptions = Options(
+                    method: requestOptions.method,
+                    headers: requestOptions.headers,
+                    responseType: requestOptions.responseType,
+                    contentType: requestOptions.contentType,
+                    extra: {
+                      ...requestOptions.extra,
+                      'attempted_urls': [...attempted, candidate],
+                    },
+                  );
+
+                  final testDio = Dio(
+                    BaseOptions(
+                      baseUrl: candidate,
+                      connectTimeout: const Duration(seconds: 4),
+                      receiveTimeout: const Duration(seconds: 4),
+                    ),
+                  );
+
+                  final response = await testDio.request(
+                    requestOptions.path,
+                    data: requestOptions.data,
+                    queryParameters: requestOptions.queryParameters,
+                    options: retryOptions,
+                  );
+
+                  // Successfully reached candidate! Switch active baseUrl for all subsequent requests
+                  ApiEndpoints.baseUrl = candidate;
+                  dio.options.baseUrl = candidate;
+                  return handler.resolve(response);
+                } catch (_) {
+                  // Fall through to next candidate
+                }
+              }
+            }
+          }
+
           final mappedException = _mapDioError(error);
           return handler.reject(
             DioException(
@@ -63,7 +112,10 @@ class ApiClient {
         error.type == DioExceptionType.receiveTimeout ||
         error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.unknown) {
-      return const NetworkException();
+      return NetworkException(
+        url: ApiEndpoints.baseUrl,
+        message: 'Unable to reach institutional banking server at ${ApiEndpoints.baseUrl}. Check network connection.',
+      );
     }
 
     final response = error.response;
@@ -117,5 +169,23 @@ class ApiClient {
     Options? options,
   }) async {
     return dio.patch<T>(path, data: data, queryParameters: queryParameters, options: options);
+  }
+
+  Future<Response<T>> put<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    return dio.put<T>(path, data: data, queryParameters: queryParameters, options: options);
+  }
+
+  Future<Response<T>> delete<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    return dio.delete<T>(path, data: data, queryParameters: queryParameters, options: options);
   }
 }

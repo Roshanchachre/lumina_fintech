@@ -9,6 +9,7 @@ import '../core/sound/sound_service.dart';
 import '../theme/lumina_theme.dart';
 import '../widgets/atmospheric_background.dart';
 import 'auth_screen.dart';
+import 'login_screen.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -57,7 +58,8 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
 
-    // Stage 2: Check onboarding status
+    // Stage 2: Check authentication and onboarding status
+    final token = await _secureVault.getAuthToken();
     final isOnboarded = await _secureVault.isOnboardingCompleted();
 
     HapticFeedback.mediumImpact();
@@ -65,11 +67,23 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
     _ringController.stop();
+
+    Widget targetScreen;
+    if (token != null && token.isNotEmpty) {
+      // Returning authenticated member -> Quick PIN / Biometric Vault unlock
+      targetScreen = const AuthScreen();
+    } else if (isOnboarded) {
+      // User has already completed onboarding -> Straight to Login screen (never back to onboarding)
+      targetScreen = const LoginScreen();
+    } else {
+      // First-time member -> 3-Screen Animated Mascot Onboarding
+      targetScreen = const OnboardingScreen();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 650),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            isOnboarded ? const AuthScreen() : const OnboardingScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

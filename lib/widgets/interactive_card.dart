@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import '../models/account_models.dart';
 import '../theme/lumina_theme.dart';
 
 class InteractiveCard extends StatefulWidget {
@@ -12,6 +13,11 @@ class InteractiveCard extends StatefulWidget {
   final String cardNumber;
   final String expiry;
   final bool isDiscrete;
+  final LinearGradient? gradient;
+  final String tierName;
+  final Color? accentColor;
+  final CardType cardType;
+  final String? cardNickname;
 
   const InteractiveCard({
     super.key,
@@ -20,6 +26,11 @@ class InteractiveCard extends StatefulWidget {
     this.cardNumber = '4820  8391  0294  8492',
     this.expiry = '09/29',
     this.isDiscrete = false,
+    this.gradient,
+    this.tierName = 'TITANIUM',
+    this.accentColor,
+    this.cardType = CardType.physical,
+    this.cardNickname,
   });
 
   @override
@@ -28,6 +39,9 @@ class InteractiveCard extends StatefulWidget {
 
 class _InteractiveCardState extends State<InteractiveCard>
     with TickerProviderStateMixin {
+  // Clamped safe 3D angle (~4.8 degrees) to strictly guarantee zero boundary crossing
+  static const double _maxTilt = 0.085;
+
   // Tilting states
   double _tiltX = 0.0;
   double _tiltY = 0.0;
@@ -48,8 +62,15 @@ class _InteractiveCardState extends State<InteractiveCard>
 
     _tiltResetController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
     );
+
+    _tiltResetController.addListener(() {
+      setState(() {
+        _tiltX = _tiltXAnimation.value;
+        _tiltY = _tiltYAnimation.value;
+      });
+    });
 
     _flipController = AnimationController(
       vsync: this,
@@ -66,9 +87,14 @@ class _InteractiveCardState extends State<InteractiveCard>
     try {
       _sensorSubscription = accelerometerEventStream().listen((event) {
         if (!mounted || _isFlipped) return;
+        // Low-pass filtered target: normalize against 9.8 m/s^2 gravity vector
+        // No runaway open-loop accumulation!
+        final targetX = (event.y / 9.8 * _maxTilt).clamp(-_maxTilt, _maxTilt);
+        final targetY = (-event.x / 9.8 * _maxTilt).clamp(-_maxTilt, _maxTilt);
         setState(() {
-          _tiltX = (_tiltX + (event.y * 0.0015)).clamp(-0.35, 0.35);
-          _tiltY = (_tiltY - (event.x * 0.0015)).clamp(-0.35, 0.35);
+          // Exponential decay / smoothing: glides smoothly, centers when still
+          _tiltX = _tiltX * 0.85 + targetX * 0.15;
+          _tiltY = _tiltY * 0.85 + targetY * 0.15;
         });
       }, onError: (_) {});
     } catch (_) {}
@@ -88,13 +114,8 @@ class _InteractiveCardState extends State<InteractiveCard>
     if (_isFlipped) return; // Only tilt front
 
     setState(() {
-      // Normalize offset -1.0 to 1.0
-      _tiltX += details.delta.dy * 0.0012;
-      _tiltY -= details.delta.dx * 0.0012;
-
-      // Clamp max tilt angles
-      _tiltX = _tiltX.clamp(-0.35, 0.35);
-      _tiltY = _tiltY.clamp(-0.35, 0.35);
+      _tiltX = (_tiltX + details.delta.dy * 0.0008).clamp(-_maxTilt, _maxTilt);
+      _tiltY = (_tiltY - details.delta.dx * 0.0008).clamp(-_maxTilt, _maxTilt);
     });
   }
 
@@ -104,26 +125,18 @@ class _InteractiveCardState extends State<InteractiveCard>
     _tiltXAnimation = Tween<double>(begin: _tiltX, end: 0.0).animate(
       CurvedAnimation(
         parent: _tiltResetController,
-        curve: Curves.elasticOut,
+        curve: Curves.easeOutCubic,
       ),
     );
 
     _tiltYAnimation = Tween<double>(begin: _tiltY, end: 0.0).animate(
       CurvedAnimation(
         parent: _tiltResetController,
-        curve: Curves.elasticOut,
+        curve: Curves.easeOutCubic,
       ),
     );
 
-    _tiltResetController.reset();
-    _tiltResetController.forward();
-
-    _tiltResetController.addListener(() {
-      setState(() {
-        _tiltX = _tiltXAnimation.value;
-        _tiltY = _tiltYAnimation.value;
-      });
-    });
+    _tiltResetController.forward(from: 0.0);
   }
 
   void _toggleFlip() {
@@ -146,7 +159,8 @@ class _InteractiveCardState extends State<InteractiveCard>
         final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : screenWidth - 32;
-        final cardWidth = maxWidth.clamp(280.0, 350.0);
+        // Strictly leave safety margins so 3D rotation never touches or crosses the screen borders
+        final cardWidth = (maxWidth - 16).clamp(270.0, 336.0);
         final cardHeight = cardWidth / 1.618;
 
         return Center(
@@ -163,7 +177,7 @@ class _InteractiveCardState extends State<InteractiveCard>
                 return Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.0016) // Perspective
+                    ..setEntry(3, 2, 0.0010) // Calibrated subtle perspective
                     ..rotateX(_tiltX)
                     ..rotateY(_tiltY + flipAngle),
                   child: isBackVisible
@@ -183,21 +197,24 @@ class _InteractiveCardState extends State<InteractiveCard>
   }
 
   Widget _buildFrontCard(double cardWidth, double cardHeight) {
+    final accent = widget.accentColor ?? LuminaColors.acidLime;
+    final isVirtual = widget.cardType == CardType.virtual;
+
     return Container(
       width: cardWidth,
       height: cardHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: LuminaColors.cardGradientTitanium,
+        gradient: widget.gradient ?? LuminaColors.cardGradientTitanium,
         border: Border.all(
           color: LuminaColors.surfaceBorder,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: LuminaColors.acidLime.withValues(alpha: 0.12),
+            color: accent.withValues(alpha: 0.15),
             blurRadius: 30,
-            offset: Offset(_tiltY * 50, _tiltX * 50 + 15),
+            offset: Offset(_tiltY * 20, _tiltX * 20 + 15),
             spreadRadius: -5,
           ),
           BoxShadow(
@@ -222,7 +239,7 @@ class _InteractiveCardState extends State<InteractiveCard>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      LuminaColors.electricCobalt.withValues(alpha: 0.28),
+                      accent.withValues(alpha: 0.25),
                       Colors.transparent,
                     ],
                   ),
@@ -239,7 +256,7 @@ class _InteractiveCardState extends State<InteractiveCard>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      LuminaColors.acidLime.withValues(alpha: 0.15),
+                      LuminaColors.electricCobalt.withValues(alpha: 0.18),
                       Colors.transparent,
                     ],
                   ),
@@ -250,7 +267,7 @@ class _InteractiveCardState extends State<InteractiveCard>
             // Dynamic Specular Sheen (Moves with user pan)
             Positioned.fill(
               child: Transform.translate(
-                offset: Offset(_tiltY * 260, _tiltX * 260),
+                offset: Offset(_tiltY * 120, _tiltX * 120),
                 child: Container(
                   decoration: const BoxDecoration(
                     gradient: LuminaColors.glassSheen,
@@ -269,71 +286,105 @@ class _InteractiveCardState extends State<InteractiveCard>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Top row: Brand + Chip + Contactless
+                  // Top row: Brand Tier + Form Factor Badge + Contactless
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: LuminaColors.acidLime.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.diamond_outlined,
-                                  color: LuminaColors.acidLime,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'TITANIUM',
-                                  style: GoogleFonts.spaceGrotesk(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.2,
-                                    color: LuminaColors.acidLime,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: accent.withValues(alpha: 0.35),
                                   ),
                                 ),
-                              ],
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.diamond_outlined,
+                                      color: accent,
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        widget.tierName.toUpperCase(),
+                                        style: GoogleFonts.spaceGrotesk(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.8,
+                                          color: accent,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            // Physical Metal vs Virtual Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isVirtual
+                                    ? LuminaColors.electricCobalt.withValues(alpha: 0.25)
+                                    : Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isVirtual ? 'VIRTUAL' : 'METAL',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: isVirtual
+                                      ? const Color(0xFF93C5FD)
+                                      : LuminaColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.contactless_rounded,
+                            isVirtual ? Icons.wifi_rounded : Icons.contactless_rounded,
                             color: LuminaColors.textSecondary.withValues(alpha: 0.7),
-                            size: 22,
+                            size: 18,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           // Hologram interlocking circles
                           SizedBox(
-                            width: 32,
-                            height: 20,
+                            width: 28,
+                            height: 16,
                             child: Stack(
                               children: [
                                 Container(
-                                  width: 20,
-                                  height: 20,
+                                  width: 16,
+                                  height: 16,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: LuminaColors.acidLime.withValues(alpha: 0.7),
+                                    color: accent.withValues(alpha: 0.7),
                                   ),
                                 ),
                                 Positioned(
-                                  left: 12,
+                                  left: 10,
                                   child: Container(
-                                    width: 20,
-                                    height: 20,
+                                    width: 16,
+                                    height: 16,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: LuminaColors.electricCobalt.withValues(alpha: 0.8),
@@ -348,36 +399,61 @@ class _InteractiveCardState extends State<InteractiveCard>
                     ],
                   ),
 
-                  // Metallic EMV Chip
-                  Container(
-                    width: 38,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE2C974), Color(0xFF9E8132)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      border: Border.all(color: const Color(0xFFF7E7A9), width: 0.5),
-                    ),
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 24,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.black26,
-                                width: 0.8,
+                  // Metallic EMV Chip or Virtual Cyber Chip
+                  isVirtual
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.white24, width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.bolt_rounded, size: 14, color: LuminaColors.acidLime),
+                              const SizedBox(width: 4),
+                              Text(
+                                'DYNAMIC CVV READY',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: LuminaColors.acidLime,
+                                ),
                               ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          width: 38,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFE2C974), Color(0xFF9E8132)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            border: Border.all(color: const Color(0xFFF7E7A9), width: 0.5),
+                          ),
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: Container(
+                                  width: 24,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.black26,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
 
                   // Card Number (Responsive FittedBox)
                   FittedBox(

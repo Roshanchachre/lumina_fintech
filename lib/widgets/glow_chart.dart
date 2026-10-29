@@ -1,6 +1,9 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import '../data/chart_dataset.dart';
+import '../models/account_models.dart';
 import '../theme/lumina_theme.dart';
 
 class GlowChart extends StatefulWidget {
@@ -23,20 +26,12 @@ class _GlowChartState extends State<GlowChart>
   double? _scrubX;
   bool _isScrubbing = false;
 
-  final Map<String, List<double>> _chartPoints = {
-    '1D': [40, 48, 45, 58, 52, 65, 62, 74, 70, 85],
-    '1W': [30, 42, 38, 55, 48, 62, 59, 72, 80, 92],
-    '1M': [35, 45, 40, 60, 55, 70, 65, 82, 78, 95],
-    '1Y': [20, 32, 28, 45, 40, 58, 65, 75, 85, 100],
-    'ALL': [15, 25, 35, 30, 50, 65, 60, 80, 90, 100],
-  };
-
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 750),
     );
 
     _drawAnimation = CurvedAnimation(
@@ -83,7 +78,7 @@ class _GlowChartState extends State<GlowChart>
 
   @override
   Widget build(BuildContext context) {
-    final rawPoints = _chartPoints[widget.period] ?? _chartPoints['1M']!;
+    final dataPoints = LuminaChartData.forPeriod(widget.period);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -109,7 +104,7 @@ class _GlowChartState extends State<GlowChart>
                 return CustomPaint(
                   size: Size(width, height),
                   painter: _SplineChartPainter(
-                    points: rawPoints,
+                    dataPoints: dataPoints,
                     progress: _drawAnimation.value,
                     scrubX: _scrubX,
                     isScrubbing: _isScrubbing,
@@ -125,13 +120,13 @@ class _GlowChartState extends State<GlowChart>
 }
 
 class _SplineChartPainter extends CustomPainter {
-  final List<double> points;
+  final List<FinancialDataPoint> dataPoints;
   final double progress;
   final double? scrubX;
   final bool isScrubbing;
 
   _SplineChartPainter({
-    required this.points,
+    required this.dataPoints,
     required this.progress,
     this.scrubX,
     required this.isScrubbing,
@@ -139,26 +134,28 @@ class _SplineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (points.isEmpty) return;
+    if (dataPoints.isEmpty) return;
 
     final width = size.width;
     final height = size.height;
+    final values = dataPoints.map((d) => d.value).toList();
 
-    final minVal = points.reduce((a, b) => a < b ? a : b) * 0.8;
-    final maxVal = points.reduce((a, b) => a > b ? a : b) * 1.1;
-    final valRange = (maxVal - minVal).clamp(1.0, 999999.0);
+    final minVal = values.reduce((a, b) => a < b ? a : b);
+    final maxVal = values.reduce((a, b) => a > b ? a : b);
+    final valRange = (maxVal - minVal) <= 0 ? 1.0 : (maxVal - minVal);
 
-    final stepX = width / (points.length - 1);
+    final stepX = width / (dataPoints.length - 1);
     final offsets = <Offset>[];
 
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < dataPoints.length; i++) {
       final x = i * stepX;
-      final normalizedY = (points[i] - minVal) / valRange;
-      final y = height - (normalizedY * (height * 0.85) + (height * 0.05));
+      final normalizedY = (values[i] - minVal) / valRange;
+      // Chart line occupies 70% of canvas height to leave top breathing room for scrub HUD
+      final y = height - (normalizedY * (height * 0.65) + (height * 0.12));
       offsets.add(Offset(x, y));
     }
 
-    // Build Spline Path
+    // Build Smooth Bézier Spline Path
     final path = Path();
     path.moveTo(offsets[0].dx, offsets[0].dy);
 
@@ -179,7 +176,7 @@ class _SplineChartPainter extends CustomPainter {
       );
     }
 
-    // Path measurement for animated draw
+    // Path measurement for smooth progressive draw
     final pathMetrics = path.computeMetrics().toList();
     if (pathMetrics.isEmpty) return;
     final metric = pathMetrics.first;
@@ -197,11 +194,11 @@ class _SplineChartPainter extends CustomPainter {
         const Offset(0, 0),
         Offset(0, height),
         [
-          LuminaColors.acidLime.withValues(alpha: 0.25 * progress),
+          LuminaColors.acidLime.withValues(alpha: 0.22 * progress),
           LuminaColors.electricCobalt.withValues(alpha: 0.08 * progress),
           Colors.transparent,
         ],
-        [0.0, 0.6, 1.0],
+        [0.0, 0.55, 1.0],
       )
       ..style = PaintingStyle.fill;
 
@@ -209,10 +206,10 @@ class _SplineChartPainter extends CustomPainter {
 
     // 2. Draw Bloom / Ambient Blur on Stroke
     final bloomPaint = Paint()
-      ..color = LuminaColors.acidLime.withValues(alpha: 0.45 * progress)
+      ..color = LuminaColors.acidLime.withValues(alpha: 0.40 * progress)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      ..strokeWidth = 5.0
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
 
     canvas.drawPath(animatedPath, bloomPaint);
 
@@ -227,13 +224,13 @@ class _SplineChartPainter extends CustomPainter {
         ],
       )
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
+      ..strokeWidth = 2.4
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     canvas.drawPath(animatedPath, strokePaint);
 
-    // 4. Scrubbing interaction indicator
+    // 4. Interactive Scrubbing HUD
     if (isScrubbing && scrubX != null) {
       final normalizedScrub = (scrubX! / width).clamp(0.0, 1.0);
       final distance = metric.length * normalizedScrub;
@@ -261,19 +258,64 @@ class _SplineChartPainter extends CustomPainter {
         final outerDotPaint = Paint()
           ..color = LuminaColors.acidLime.withValues(alpha: 0.3)
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(pos, 12, outerDotPaint);
+        canvas.drawCircle(pos, 11, outerDotPaint);
 
         // Inner Sharp Dot
         final innerDotPaint = Paint()
           ..color = LuminaColors.acidLime
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(pos, 5, innerDotPaint);
+        canvas.drawCircle(pos, 4.5, innerDotPaint);
 
         // Core White Highlight
         final coreDotPaint = Paint()
           ..color = Colors.white
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(pos, 2.5, coreDotPaint);
+        canvas.drawCircle(pos, 2.0, coreDotPaint);
+
+        // Floating HUD Pill
+        final closestIndex = (normalizedScrub * (dataPoints.length - 1)).round().clamp(0, dataPoints.length - 1);
+        final activePoint = dataPoints[closestIndex];
+        final priceStr = '\$${NumberFormat("#,##0.00").format(activePoint.value)}';
+        final labelStr = '${activePoint.timeLabel} • $priceStr';
+
+        final textSpan = TextSpan(
+          text: labelStr,
+          style: const TextStyle(
+            color: LuminaColors.textPrimary,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            fontFamily: 'SpaceGrotesk',
+          ),
+        );
+        final textPainter = TextPainter(
+          text: textSpan,
+          textDirection: ui.TextDirection.ltr,
+        )..layout();
+
+        final hudWidth = textPainter.width + 16;
+        final hudHeight = textPainter.height + 8;
+        // Clamp HUD horizontally so it never exceeds screen bounds
+        final hudX = (pos.dx - (hudWidth / 2)).clamp(6.0, width - hudWidth - 6.0);
+        final hudY = (pos.dy - 34.0) < 4.0 ? (pos.dy + 14.0) : (pos.dy - 34.0);
+
+        final hudRRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(hudX, hudY, hudWidth, hudHeight),
+          const Radius.circular(8),
+        );
+
+        final hudBgPaint = Paint()
+          ..color = LuminaColors.surfaceElevated.withValues(alpha: 0.95)
+          ..style = PaintingStyle.fill;
+        canvas.drawRRect(hudRRect, hudBgPaint);
+
+        final hudBorderPaint = Paint()
+          ..color = LuminaColors.acidLime.withValues(alpha: 0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0;
+        canvas.drawRRect(hudRRect, hudBorderPaint);
+
+        textPainter.paint(canvas, Offset(hudX + 8, hudY + 4));
       }
     }
   }
@@ -283,6 +325,6 @@ class _SplineChartPainter extends CustomPainter {
     return oldDelegate.progress != progress ||
         oldDelegate.scrubX != scrubX ||
         oldDelegate.isScrubbing != isScrubbing ||
-        oldDelegate.points != points;
+        oldDelegate.dataPoints != dataPoints;
   }
 }

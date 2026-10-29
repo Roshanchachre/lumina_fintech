@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../bloc/account_bloc.dart';
 import '../theme/lumina_theme.dart';
+import '../widgets/lumina_snackbar.dart';
 
 class PortfolioScreen extends StatelessWidget {
   const PortfolioScreen({super.key});
@@ -265,12 +266,11 @@ class PortfolioScreen extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: () {
-                              HapticFeedback.lightImpact();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Auto-rebalance is active on Arbitrum L2.'),
-                                  backgroundColor: LuminaColors.surfaceElevated,
-                                ),
+                              LuminaSnackBar.show(
+                                context,
+                                type: LuminaSnackBarType.success,
+                                title: 'Autonomous Yield Engine',
+                                message: 'Hourly auto-rebalancing is active on Arbitrum One L2.',
                               );
                             },
                             child: Text(
@@ -305,7 +305,7 @@ class PortfolioScreen extends StatelessWidget {
                 ),
 
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 130),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -338,13 +338,15 @@ class PortfolioScreen extends StatelessWidget {
                                     Text(
                                       asset.assetName,
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 15,
+                                        fontSize: 14.5,
                                         fontWeight: FontWeight.w600,
                                         color: LuminaColors.textPrimary,
+                                        height: 1.25,
                                       ),
-                                      maxLines: 1,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
                                       '${asset.symbol} • ${asset.apy}% APY',
                                       style: GoogleFonts.plusJakartaSans(

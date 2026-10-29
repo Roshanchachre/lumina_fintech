@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../bloc/account_bloc.dart';
+import '../bloc/auth_bloc.dart';
 import '../core/security/biometric_service.dart';
 import '../core/security/secure_vault.dart';
 import '../core/sound/sound_service.dart';
 import '../theme/lumina_theme.dart';
 import '../widgets/atmospheric_background.dart';
+import 'login_screen.dart';
 import 'main_shell_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -57,6 +61,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (authenticated && mounted) {
       _unlockSuccess();
+    } else if (mounted) {
+      setState(() {
+        _statusMessage = 'Biometrics cancelled. Enter passcode or use password';
+      });
     }
   }
 
@@ -107,11 +115,18 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  void _unlockSuccess() {
+  Future<void> _unlockSuccess() async {
     HapticFeedback.mediumImpact();
     SoundService.instance.play(LuminaSound.biometricUnlock);
 
     if (!mounted) return;
+
+    // Refresh auth state and account data directly so no re-authentication is needed
+    try {
+      context.read<AuthBloc>().add(CheckAuthStatus());
+      context.read<AccountBloc>().add(LoadAccountData());
+    } catch (_) {}
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
@@ -274,6 +289,37 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ],
                               ),
                             ],
+                          ),
+                        ),
+
+                        SizedBox(height: isCompact ? 10 : 16),
+
+                        // Unlock with Password instead option
+                        TextButton.icon(
+                          onPressed: () {
+                            SoundService.instance.play(LuminaSound.cardClick);
+                            Navigator.of(context).pushReplacement(
+                              PageRouteBuilder(
+                                transitionDuration: const Duration(milliseconds: 400),
+                                pageBuilder: (_, __, ___) => const LoginScreen(),
+                                transitionsBuilder: (_, animation, __, child) =>
+                                    FadeTransition(opacity: animation, child: child),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.password_rounded,
+                            color: LuminaColors.acidLime,
+                            size: 16,
+                          ),
+                          label: Text(
+                            'UNLOCK WITH PASSWORD INSTEAD',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: LuminaColors.acidLime,
+                            ),
                           ),
                         ),
 

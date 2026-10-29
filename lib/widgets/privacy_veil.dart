@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/security/biometric_service.dart';
 import '../core/sound/sound_service.dart';
+import '../screens/login_screen.dart';
 import '../theme/lumina_theme.dart';
 
 /// App-level Privacy Guard that masks the screen when app is in the background,
@@ -222,6 +223,39 @@ class LuminaPrivacyGuardState extends State<LuminaPrivacyGuard>
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Fallback to password unlock
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _isVeiled = false;
+                              });
+                              Navigator.of(context).pushAndRemoveUntil(
+                                PageRouteBuilder(
+                                  pageBuilder: (_, __, ___) => const LoginScreen(),
+                                  transitionsBuilder: (_, a, __, c) =>
+                                      FadeTransition(opacity: a, child: c),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.password_rounded,
+                              color: LuminaColors.acidLime,
+                              size: 16,
+                            ),
+                            label: Text(
+                              'UNLOCK WITH PASSWORD INSTEAD',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                                color: LuminaColors.acidLime,
                               ),
                             ),
                           ),

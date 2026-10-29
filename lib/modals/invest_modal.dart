@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/lumina_theme.dart';
+import '../widgets/lumina_snackbar.dart';
 
 class InvestModal extends StatelessWidget {
   const InvestModal({super.key});
@@ -102,13 +102,12 @@ class InvestModal extends StatelessWidget {
   }
 
   static void _showSuccess(BuildContext context, String message) {
-    HapticFeedback.heavyImpact();
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: LuminaColors.surfaceElevated,
-      ),
+    LuminaSnackBar.show(
+      context,
+      type: LuminaSnackBarType.success,
+      title: 'Allocation Executed',
+      message: message,
     );
   }
 

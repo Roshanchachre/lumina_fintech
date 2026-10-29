@@ -32,8 +32,8 @@ class _RollingBalanceHeaderState extends State<RollingBalanceHeader>
   String _selectedPeriod = '1M';
 
   final Map<String, Map<String, double>> _periodData = {
-    '1D': {'balance': 124630.45, 'change': 680.15, 'pct': 0.55},
-    '1W': {'balance': 121890.00, 'change': 2740.85, 'pct': 2.30},
+    '1D': {'balance': 125310.60, 'change': 680.15, 'pct': 0.55},
+    '1W': {'balance': 124630.85, 'change': 2740.85, 'pct': 2.30},
     '1M': {'balance': 128450.85, 'change': 3820.40, 'pct': 3.06},
     '1Y': {'balance': 154210.60, 'change': 29580.00, 'pct': 23.73},
     'ALL': {'balance': 186900.20, 'change': 62270.50, 'pct': 49.96},

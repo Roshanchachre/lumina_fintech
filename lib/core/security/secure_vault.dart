@@ -81,11 +81,21 @@ class SecureVault {
   static const String keyCardPinPrefix = 'lumina_vault_card_pin_salt';
   static const String keyOnboardingCompleted = 'lumina_vault_onboarding_completed';
   static const String keyUserPin = 'lumina_vault_user_pin';
+  static const String keySavedEmail = 'lumina_vault_saved_email';
 
   final IVaultStorage _storage;
 
   SecureVault({IVaultStorage? storage})
       : _storage = storage ?? HardwareSecureStorage();
+
+  /// Saved Account Email
+  Future<void> saveLastEmail(String email) async {
+    await _storage.write(key: keySavedEmail, value: email);
+  }
+
+  Future<String?> getLastEmail() async {
+    return await _storage.read(key: keySavedEmail);
+  }
 
   /// Session Token Management
   Future<void> saveAuthToken(String token) async {
