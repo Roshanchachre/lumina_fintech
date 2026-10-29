@@ -31,7 +31,7 @@ The user experience features interactive **3D accelerometer tilt physics**, seam
 ### Adaptive Experience • Mobile & Tablet Side-by-Side
 
 <div align="center">
-  <img src="docs/screenshots/responsive_showcase.png" alt="Lumina Responsive Showcase - Mobile & Tablet" width="100%" />
+  <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/responsive_showcase.png" alt="Lumina Responsive Showcase - Mobile & Tablet" width="100%" />
 </div>
 
 <br/>
@@ -51,44 +51,44 @@ Lumina's layout engine dynamically scales and restructures views based on viewpo
     <!-- Row 1: Dashboard -->
     <tr>
       <td align="center">
-        <img src="docs/screenshots/mobile_dashboard.png" width="280" alt="Mobile Dashboard" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_dashboard.png" width="280" alt="Mobile Dashboard" /><br/>
         <b>Master Net Worth & 1D/1W/1M Spend Chart</b>
       </td>
       <td align="center">
-        <img src="docs/screenshots/tablet_dashboard.png" width="580" alt="Tablet Dashboard" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/tablet_dashboard.png" width="580" alt="Tablet Dashboard" /><br/>
         <b>Expanded Multi-Asset Overview & Live Activity Stream</b>
       </td>
     </tr>
     <!-- Row 2: Cards Management -->
     <tr>
       <td align="center">
-        <img src="docs/screenshots/mobile_cards.png" width="280" alt="Mobile Cards" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_cards.png" width="280" alt="Mobile Cards" /><br/>
         <b>3D Accelerometer Tilt Cards & Security Controls</b>
       </td>
       <td align="center">
-        <img src="docs/screenshots/tablet_cards.png" width="580" alt="Tablet Cards" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/tablet_cards.png" width="580" alt="Tablet Cards" /><br/>
         <b>Dual-Pane Card Vault with Instant Spend Limit Controls</b>
       </td>
     </tr>
     <!-- Row 3: Portfolio & Wealth Allocation -->
     <tr>
       <td align="center">
-        <img src="docs/screenshots/mobile_portfolio.png" width="280" alt="Mobile Portfolio" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_portfolio.png" width="280" alt="Mobile Portfolio" /><br/>
         <b>Holdings & Compounding Yield Distribution</b>
       </td>
       <td align="center">
-        <img src="docs/screenshots/tablet_portfolio.png" width="580" alt="Tablet Portfolio" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/tablet_portfolio.png" width="580" alt="Tablet Portfolio" /><br/>
         <b>High-Density Multi-Asset Allocation Grid</b>
       </td>
     </tr>
     <!-- Row 4: Settings & Security Vault -->
     <tr>
       <td align="center">
-        <img src="docs/screenshots/mobile_settings.png" width="280" alt="Mobile Settings" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_settings.png" width="280" alt="Mobile Settings" /><br/>
         <b>Biometric Enclave & Discrete Privacy Controls</b>
       </td>
       <td align="center">
-        <img src="docs/screenshots/tablet_settings.png" width="580" alt="Tablet Settings" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/tablet_settings.png" width="580" alt="Tablet Settings" /><br/>
         <b>Settlement Network Routing & Vault Access Locks</b>
       </td>
     </tr>
@@ -113,15 +113,15 @@ Lumina replaces standard modal bottom sheets with dedicated, full-screen interac
   <tbody>
     <tr>
       <td align="center">
-        <img src="docs/screenshots/mobile_card_issuance.png" width="260" alt="Card Issuance Flow" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_card_issuance.png" width="260" alt="Card Issuance Flow" /><br/>
         <em>4-tier issuance (Obsidian, Cosmic, Gold, Stealth) with PIN config & limits</em>
       </td>
       <td align="center">
-        <img src="docs/screenshots/mobile_notifications.png" width="260" alt="Notifications Inbox" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_notifications.png" width="260" alt="Notifications Inbox" /><br/>
         <em>Live badge sync, category filters, and swipe-to-mark actions</em>
       </td>
       <td align="center">
-        <img src="docs/screenshots/mobile_activities.png" width="260" alt="Activities Timeline" /><br/>
+        <img src="https://raw.githubusercontent.com/Roshanchachre/lumina_fintech/main/docs/screenshots/mobile_activities.png" width="260" alt="Activities Timeline" /><br/>
         <em>Full-ledger search, transaction filtering, and audit trail breakdown</em>
       </td>
     </tr>
